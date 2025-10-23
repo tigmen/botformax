@@ -76,5 +76,8 @@ int main() {
 	}
 	log(INFO, "%s", request);
 
+	SSL_free(ssl);
+	SSL_CTX_free(ctx);
+
 	return 0;
 }
