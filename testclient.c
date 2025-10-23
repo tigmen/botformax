@@ -67,8 +67,7 @@ int main() {
 	}
 
 	char* request =
-	    "GET" IP_PATH
-	    "HTTP/1.1\r\nHost:" IP_HOST "\r\n\r\n";
+	    "GET " IP_PATH " HTTP/1.1\r\nHost:" IP_HOST "\r\n\r\n";
 
 	status = SSL_write(ssl, request, strlen(request));
 	if(status < 0) {
