@@ -1,6 +1,5 @@
 #include <arpa/inet.h>
 #include <ctype.h>
-#include <json-c/json.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <openssl/ssl.h>
@@ -9,102 +8,74 @@
 #include <string.h>
 #include <sys/socket.h>
 
-#define token "7515996637:AAGz4Me9uTw2K-vXwK5SvD7oQ4iU_ZtG18w"
+#include "log/log.h"
+#include "errno.h"
 
-#define IP_HOST "ipv4-internet.yandex.net"
-#define IP_PATH "/api/v0/ip"
+#define TOKEN "7515996637:AAGz4Me9uTw2K-vXwK5SvD7oQ4iU_ZtG18w"
 
-struct header {
-	char* name;
-	char* data;
-};
+#define IP_HOST "api.telegram.org"
+#define IP_PATH "/bot" TOKEN "/getMe"
 
-#define NEXT_TOKEN "\r\n"
-#define SIZE_TOKEN "Content-Length"
-enum STATES { SKIP, PARSE, DATA, READ };
+#define PORT "443"
 
-#define N 4096
-void HTTP_parse(SSL* ssl) {
-	enum STATES state = PARSE;
-	char* buffer = malloc(N * sizeof(char));
 
-	SSL_read(ssl, buffer, N);
-	int parse_n = 0;
-	int content_lenght = 0;
-	for (char* p = buffer; *p; p++) {
-		switch (state) {
-			case PARSE:
-				if (*p == '\r') {
-					p++;
-					if (*p == '\n') {
-						state = READ;
-						break;
-					}
-				} else if (*p == ':') {
-					content_lenght = 0;
-					state = DATA;
-				} else if (*p != SIZE_TOKEN[parse_n++]) {
-					parse_n = 0;
-					state = SKIP;
-				}
-				break;
-			case SKIP:
-				if (*p == '\r') {
-					p++;
-					if (*p == '\n') {
-						state = PARSE;
-					}
-				}
-				break;
-			case DATA:
-				if (*p == '\r') {
-					p++;
-					if (*p == '\n') {
-						state = PARSE;
-					}
-				} else if(isdigit(*p)) {
-					content_lenght = content_lenght * 10 + *p - '0';
-					printf("%c", *p);
-				}
-				break;
-			default:
-				break;
-		}
-		if (state == READ) {
-			break;
-		}
-	}
-
-	SSL_read(ssl, buffer, content_lenght);
-	buffer[content_lenght] = '\0';
-	printf("\n%s\n", buffer);
-}
 
 int main() {
-	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	struct hostent* h;
-	if ((h = gethostbyname(IP_HOST)) == NULL) {
-		printf("gethostbyname");
-		return 1;
+	log_init("log.txt", INFO);
+
+	SSL_library_init();
+	SSL_CTX* ctx = SSL_CTX_new(TLS_method());
+	if(ctx == NULL) {
+		log(ERROR, "%s %d: Error creating SSL context\n", __FILE__, __LINE__);
 	}
 
-	printf("%s\n", inet_ntoa(*((struct in_addr*)h->h_addr)));
-	struct sockaddr_in addr = {AF_INET, htons(443),
-	                           *((struct in_addr*)h->h_addr)};
+	struct addrinfo host_info, *res;
+	host_info.ai_family = AF_INET;
+	host_info.ai_socktype = SOCK_STREAM;
+	host_info.ai_protocol = IPPROTO_TCP;
+	host_info.ai_flags = 0;
+	
+	int status;
+	status = getaddrinfo(IP_HOST, PORT, &host_info, &res);
+	if(status) {
+		log(ERROR, "%s %d: Error looking up for host %s\n", __FILE__, __LINE__, IP_HOST);
+		exit(0);
+	}
 
-	connect(sockfd, (struct sockaddr*)&addr, sizeof(addr));
+	int sd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+	if(sd < 0) {
+		log(ERROR, "%s %d: Error creating socket: %s\n", __FILE__, __LINE__, strerror(errno));
+		exit(0);
+	}
 
-	SSL_CTX* ctx = SSL_CTX_new(TLS_method());
+	status = connect(sd, res->ai_addr, res->ai_addrlen);
+	if(status) {
+		log(ERROR, "%s %d: Error connecting to host %s port %s: %s\n", __FILE__, __LINE__, IP_HOST, PORT, strerror(errno));
+	       	exit(0);
+	}	       
+	freeaddrinfo(res);
+
 	SSL* ssl = SSL_new(ctx);
-	SSL_set_fd(ssl, sockfd);
-	SSL_connect(ssl);
-	char* request =
-	    "GET /api/v0/ip "
-	    "HTTP/1.1\r\nHost:ipv4-internet.yandex.net\r\n\r\n";
-	SSL_write(ssl, request, strlen(request));
-	printf("%s", request);
+	if(ssl == NULL) {
+		log(ERROR, "%s %d: Error init SSL\n", __FILE__, __LINE__);
+	}
 
-	HTTP_parse(ssl);
+	SSL_set_fd(ssl, sd);
+	status = SSL_connect(ssl);
+	if(status < 0) {
+		log(ERROR, "%s %d: Error connecting SSL handshake\n", __FILE__, __LINE__);
+	}
+
+	char* request =
+	    "GET" IP_PATH
+	    "HTTP/1.1\r\nHost:" IP_HOST "\r\n\r\n";
+
+	status = SSL_write(ssl, request, strlen(request));
+	if(status < 0) {
+		log(ERROR, "%s %d: Error sending request: %d\n", __FILE__, __LINE__, strerror(errno));
+		exit(0);
+	}
+	log(INFO, "%s", request);
 
 	return 0;
 }
