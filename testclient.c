@@ -7,8 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
-#include "errno.h"
+#include <errno.h>
 #include "trace/trace.h"
 
 #define TOKEN "7515996637:AAGz4Me9uTw2K-vXwK5SvD7oQ4iU_ZtG18w"
@@ -22,7 +23,7 @@ int main() {
 	trace_init("log", INFO);
 
 	SSL_library_init();
-	SSL_CTX* ctx = SSL_CTX_new(TLS_method());
+	SSL_CTX* ctx = SSL_CTX_new(TLS_client_method());
 	if (ctx == NULL) {
 		trace(ERROR, "%s %d: Error creating SSL context\n", __FILE__,
 		      __LINE__);
@@ -60,6 +61,7 @@ int main() {
 	SSL* ssl = SSL_new(ctx);
 	if (ssl == NULL) {
 		trace(ERROR, "%s %d: Error init SSL\n", __FILE__, __LINE__);
+		exit(0);
 	}
 
 	SSL_set_fd(ssl, sd);
@@ -67,9 +69,10 @@ int main() {
 	if (status < 0) {
 		trace(ERROR, "%s %d: Error connecting SSL handshake\n",
 		      __FILE__, __LINE__);
+		exit(0);
 	}
 
-	char* request = "GET " IP_PATH " HTTP/1.1\r\nHost:" IP_HOST "\r\n\r\n";
+	char* request = "GET " IP_PATH " HTTP/1.1\r\nHost: " IP_HOST "\r\n\r\n";
 
 	status = SSL_write(ssl, request, strlen(request));
 	if (status < 0) {
@@ -79,8 +82,11 @@ int main() {
 	}
 	trace(INFO, "%s", request);
 
+	SSL_shutdown(ssl);
 	SSL_free(ssl);
 	SSL_CTX_free(ctx);
+
+	close(sd);
 
 	return 0;
 }

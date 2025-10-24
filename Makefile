@@ -1,14 +1,14 @@
 all: index
 
-index: testclient.o trace.o
-	gcc trace.o testclient.o -lssl -ljson-c -o index
+index: client.o trace.o
+	gcc trace.o client.o -lcurl -ljson-c -o index
 
-testclient.o: testclient.c
-	gcc -c testclient.c
+client.o: client.c
+	gcc -c -g client.c
 
 trace.o: trace/trace.c trace/trace.h
 	gcc -c trace/trace.c
 
 clean:
-	rm -rf *.o vgcore.*
+	rm -rf *.o vgcore.* log
 
