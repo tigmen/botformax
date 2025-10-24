@@ -29,7 +29,7 @@ void trace(enum TRACE_LEVEL trace_level, char* fmt, ...) {
 				break;
 
 			case WARNING:
-				fprintf(trace_file, "%s %s ---WARNING---- ",
+				fprintf(trace_file, "%s %s ---WARNING--- ",
 				        __DATE__, __TIME__);
 				break;
 

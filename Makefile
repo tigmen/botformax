@@ -10,5 +10,5 @@ trace.o: trace/trace.c trace/trace.h
 	gcc -c trace/trace.c
 
 clean:
-	rm -rf *.o vgcore.* log
+	rm -rf *.o vgcore.* log index
 
