@@ -32,7 +32,7 @@ typedef struct {
 typedef struct {
 	enum ATTACHMENT_TYPE type;
 	/* пока пусто  */
-}
+} Attachment;
 
 typedef struct {
 	message_id id;
