@@ -124,7 +124,7 @@ struct update_queue * get_updates(char * url) {
 }
 
 int main(void) {
-	trace_init("log", DEBUG);
+	trace_init("log", INFO);
 
 	CURLcode code = curl_global_init(CURL_GLOBAL_SSL);
 	if (code) {
@@ -134,7 +134,10 @@ int main(void) {
 	}
 
 	struct update_queue * queue = get_updates(URL);
-	printf("%s\n", update_queue_pop(queue)->message->text);
+	Update * update;
+	while(update = update_queue_pop(queue)) {
+	printf("%s\n", update->message->text);
+	}
 
 	curl_global_cleanup();
 }
@@ -169,13 +172,19 @@ void update_queue_push(struct update_queue * queue, Update * data) {
 }
 
 Update * update_queue_pop(struct update_queue * queue) {
+	Update * data; 
+	if(!update_queue_is_empty(queue)) {
 	struct update_node * node = queue->head;
 	queue->head = node->next;
 	
-	Update * data = node->data;
+	data = node->data;
 
 	free(node);
 
+	} else {
+		trace(WARNING,"%s %d: try to pop empty queue", __FILE__, __LINE__);
+		data = NULL;
+	}
 	return data;
 }
 
