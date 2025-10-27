@@ -93,6 +93,7 @@ int main(void) {
 		Update* update;
 		while (update = update_queue_pop(queue)) {
 			trace(INFO, "%s\n", update->message->text);
+			send_message(URL, update->message->chat, update->message->text);
 		}
 	}
 
