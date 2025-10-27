@@ -75,12 +75,11 @@ struct update_queue* get_updates(char* url) {
 
 		Update* update = update_parse(json_temp);
 
-		send_message(url, update->message->chat, update->message->text);
 
 		offset = update->update_id + 1;
 		update_queue_push(result, update);
 	}
-	printf("%s\n", json_object_to_json_string(json));
+	trace(INFO, "%s\n", json_object_to_json_string(json));
 	json_object_put(json);
 
 	return result;
@@ -89,20 +88,12 @@ struct update_queue* get_updates(char* url) {
 int main(void) {
 	trace_init("log", DEBUG);
 
-	CURLcode code = curl_global_init(CURL_GLOBAL_SSL);
-	if (code) {
-		trace(ERROR, "%s %d: Error initializating curl_global %s",
-		      __FILE__, __LINE__, strerror(errno));
-		exit(0);
-	}
-
 	while (1) {
 		struct update_queue* queue = get_updates(URL);
 		Update* update;
 		while (update = update_queue_pop(queue)) {
-			printf("%s\n", update->message->text);
+			trace(INFO, "%s\n", update->message->text);
 		}
 	}
 
-	curl_global_cleanup();
 }
