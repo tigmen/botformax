@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 )
@@ -64,14 +65,13 @@ func main() {
 
 	fmt.Printf("%s", GetHost())
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, Go!")
-	})
-
-	// Запускаем сервер на порту 8080
-	fmt.Println("Starting server at port 8080")
-	err = http.ListenAndServe(":8080", nil)
+	http.HandleFunc("/hello", HelloServer)
+	err = http.ListenAndServeTLS(":443", "keys/server.crt", "keys/server.key", nil)
 	if err != nil {
-		fmt.Println("Error starting the server:", err)
+		log.Fatal("ListenAndServe: ", err)
 	}
+}
+func HelloServer(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte("This is an example server.\n"))
 }
