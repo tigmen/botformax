@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 )
@@ -37,11 +38,12 @@ func (reader ReaderToString) Read(resp *http.Response) {
 	*(reader.str) = string(out)
 }
 
-const url = "https://ipv4.icanhazip.com"
-func GetHost() string{
+const GETHOSTURL = "https://ipv4.icanhazip.com"
+
+func GetHost() string {
 	var out string
 
-	resp, err := http.Get(url)
+	resp, err := http.Get(GETHOSTURL)
 	if err != nil {
 	}
 	defer resp.Body.Close()
@@ -61,5 +63,15 @@ func main() {
 	}
 	defer resp.Body.Close()
 
-	fmt.Printf("%s\n", GetHost())
+	fmt.Printf("%s", GetHost())
+
+	http.HandleFunc("/hello", HelloServer)
+	err = http.ListenAndServeTLS(":443", "keys/server.crt", "keys/server.key", nil)
+	if err != nil {
+		log.Fatal("ListenAndServe: ", err)
+	}
+}
+func HelloServer(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte("This is an example server.\n"))
 }
