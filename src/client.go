@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type Reader interface {
@@ -55,23 +56,28 @@ func GetHost() string {
 }
 
 func main() {
-	// url := "https://api.telegram.org/bot7515996637:AAGz4Me9uTw2K-vXwK5SvD7oQ4iU_ZtG18w/getMe"
-	url := "https://ipv4.icanhazip.com"
+	url := "https://api.telegram.org/bot7515996637:AAGz4Me9uTw2K-vXwK5SvD7oQ4iU_ZtG18w/setWebhook"
+	// url := "https://ipv4.icanhazip.com"
 	// filepath := "out"
-	resp, err := http.Get(url)
-	if err != nil {
-	}
-	defer resp.Body.Close()
-
 	fmt.Printf("%s", GetHost())
 
+	http.NewRequest("GET", url, strings.NewReader("{\"url\" : \"https://62.109.1.123:443\"}"))
+
 	http.HandleFunc("/hello", HelloServer)
-	err = http.ListenAndServeTLS(":443", "keys/server.crt", "keys/server.key", nil)
+	err := http.ListenAndServeTLS(":443", "keys/server.crt", "keys/server.key", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
 }
 func HelloServer(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+
 	w.Header().Set("Content-Type", "text/plain")
 	w.Write([]byte("This is an example server.\n"))
+
+	var out string
+	var reader Reader = ReaderToString{&out}
+	reader.Read(req.Response)
+
+	fmt.Printf("%s", out)
 }
