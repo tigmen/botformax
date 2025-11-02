@@ -66,9 +66,11 @@ func main() {
 
 	resp, err := http.NewRequest("GET", url, strings.NewReader("{\"url\" : \"https://62.109.1.123:443\"}"))
 
-	var out string
-	var reader Reader = ReaderToString{&out}
-	reader.Read(resp.Response)
+	if resp.Response != nil {
+		var out string
+		var reader Reader = ReaderToString{&out}
+		reader.Read(resp.Response)
+	}
 
 	fmt.Printf("%s\n", out)
 
