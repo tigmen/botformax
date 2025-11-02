@@ -36,6 +36,9 @@ func (reader ReaderToString) Read(resp *http.Response) {
 	out, err := io.ReadAll(resp.Body)
 	if err != nil {
 	}
+	if out == nil {
+		*(reader.str) = "nil"
+	}
 	*(reader.str) = string(out)
 }
 
