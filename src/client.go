@@ -70,9 +70,9 @@ func main() {
 		var out string
 		var reader Reader = ReaderToString{&out}
 		reader.Read(resp.Response)
-	}
 
-	fmt.Printf("%s\n", out)
+		fmt.Printf("%s\n", out)
+	}
 
 	http.HandleFunc("/hello", HelloServer)
 	err = http.ListenAndServeTLS(":443", "keys/server.crt", "keys/server.key", nil)
@@ -85,10 +85,11 @@ func HelloServer(w http.ResponseWriter, req *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.Write([]byte("This is an example server.\n"))
+	if req.Response != nil {
+		var out string
+		var reader Reader = ReaderToString{&out}
+		reader.Read(req.Response)
 
-	var out string
-	var reader Reader = ReaderToString{&out}
-	reader.Read(req.Response)
-
-	fmt.Printf("%s", out)
+		fmt.Printf("%s", out)
+	}
 }
