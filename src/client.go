@@ -61,10 +61,16 @@ func main() {
 	// filepath := "out"
 	fmt.Printf("%s", GetHost())
 
-	http.NewRequest("GET", url, strings.NewReader("{\"url\" : \"https://62.109.1.123:443\"}"))
+	resp, err := http.NewRequest("GET", url, strings.NewReader("{\"url\" : \"https://62.109.1.123:443\"}"))
+
+	var out string
+	var reader Reader = ReaderToString{&out}
+	reader.Read(resp.Response)
+
+	fmt.Printf("%s\n", out)
 
 	http.HandleFunc("/hello", HelloServer)
-	err := http.ListenAndServeTLS(":443", "keys/server.crt", "keys/server.key", nil)
+	err = http.ListenAndServeTLS(":443", "keys/server.crt", "keys/server.key", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
