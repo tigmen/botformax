@@ -6,7 +6,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
+
+	"golang.org/x/crypto/acme/autocert"
 )
 
 type Reader interface {
@@ -59,26 +60,36 @@ func GetHost() string {
 }
 
 func main() {
-	url := "https://api.telegram.org/bot7515996637:AAGz4Me9uTw2K-vXwK5SvD7oQ4iU_ZtG18w/setWebhook"
+	// url := "https://api.telegram.org/bot7515996637:AAGz4Me9uTw2K-vXwK5SvD7oQ4iU_ZtG18w/setWebhook"
 	// url := "https://ipv4.icanhazip.com"
 	// filepath := "out"
 	fmt.Printf("%s", GetHost())
 
-	resp, err := http.NewRequest("GET", url, strings.NewReader("{\"url\" : \"https://62.109.1.123:443\"}"))
+	//  strings.NewReader("{\"url\" : \"https://62.109.1.123:443\"}")
+	// resp, err := http.NewRequest("POST", url, jj)
 
-	if resp.Response != nil {
-		var out string
-		var reader Reader = ReaderToString{&out}
-		reader.Read(resp.Response)
+	// if resp.Response != nil {
+	// 	var out string
+	// 	var reader Reader = ReaderToString{&out}
+	// 	reader.Read(resp.Response)
 
-		fmt.Printf("%s\n", out)
-	}
+	// 	fmt.Printf("%s\n", out)
+	// }
 
-	http.HandleFunc("/hello", HelloServer)
-	err = http.ListenAndServeTLS(":443", "keys/server.crt", "keys/server.key", nil)
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
-	}
+	// http.HandleFunc("/", HelloServer)
+	// err := http.ListenAndServeTLS(":443", "keys/server.crt", "keys/server.key", nil)
+	// if err != nil {
+	// 	log.Fatal("ListenAndServe: ", err)
+	// }
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		out, err := io.ReadAll(r.Body)
+		if err != nil {
+
+		}
+		fmt.Fprintf(w, "Hello, TLS user! Your config: %s", out)
+	})
+	log.Fatal(http.Serve(autocert.NewListener(""), mux))
 }
 func HelloServer(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
