@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"log"
@@ -170,6 +171,36 @@ func GetAudio(token, url string) {
 	var reader Reader = ReaderFile{"file.ogg"}
 	reader.Read(resp)
 
+}
+
+const SENDMESSAGE = "https://platform-api.max.ru/messages"
+
+type link struct {
+	type string;
+	mid string;
+}
+type sendMessage struct {
+	user_id int64;
+	text string;
+	_link link;
+}
+
+func SendMessage(token string, message Message) {
+	client := &http.Client{}
+
+	req, err := http.NewRequest("POST", SENDMESSAGE, bytes.NewReader([]byte(body)))
+	if err != nil {
+		log.Printf("%#v", err)
+	}
+
+	req.Header.Add("Authorization", token)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("%#v", err)
+	}
+
+	defer resp.Body.Close()
 }
 
 func main() {
