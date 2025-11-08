@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -176,19 +177,20 @@ func GetAudio(token, url string) {
 const SENDMESSAGE = "https://platform-api.max.ru/messages"
 
 type link struct {
-	type string;
-	mid string;
+	Type string `json:"type"`
+	Mid  string `json:"mid:`
 }
 type sendMessage struct {
-	user_id int64;
-	text string;
-	_link link;
+	User_id int64  `json:"user_id,omitempty"`
+	Chat_id int64  `json:"chat_id,omitempty"`
+	Text    string `json:"text"`
+	Link    link   `json:"link"`
 }
 
 func SendMessage(token string, message Message) {
 	client := &http.Client{}
 
-	req, err := http.NewRequest("POST", SENDMESSAGE, bytes.NewReader([]byte(body)))
+	req, err := http.NewRequest("POST", SENDMESSAGE, bytes.NewReader([]byte(" ")))
 	if err != nil {
 		log.Printf("%#v", err)
 	}
@@ -204,5 +206,11 @@ func SendMessage(token string, message Message) {
 }
 
 func main() {
+	s := sendMessage{0, 100, "text", link{"type", "mid"}}
+	data, err := json.Marshal(s)
+	if err != nil {
+		log.Printf("%s\n", err)
+	}
+	fmt.Printf("%s\n", string(data))
 	Handle(os.Args[1])
 }
