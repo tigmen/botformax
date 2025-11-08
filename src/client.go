@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -57,75 +59,45 @@ func (reader ReaderJson) Read(resp *http.Response) {
 
 const GETUPDATES = "https://platform-api.max.ru/updates"
 
-const (
-	Audio int = 0
-	Video
-)
-
-type Attachment struct {
-	_type int
-	url   string
-	token string
+type Payload struct {
+	Url   string
+	Token string
 }
-
-func ParseAttachment(attachment map[string]any) Attachment {
-	new_attachment := new(Attachment)
-
-	switch attachment["type"].(string) {
-	case "audio":
-		new_attachment._type = 1
-
-	case "video":
-		new_attachment._type = 2
-
-	default:
-		new_attachment._type = 0
-	}
-
-	if new_attachment._type > 0 {
-		tmp := attachment["payload"].(map[string]any)
-		new_attachment.url = tmp["url"].(string)
-		new_attachment.token = tmp["token"].(string)
-	}
-
-	return *new_attachment
+type Attachment struct {
+	Type    string
+	Payload Payload
 }
 
 type Body struct {
-	mid         string
-	text        string
-	attachments []Attachment
+	Mid         string
+	Text        string
+	Attachments []Attachment
 }
 
-func ParseBody(body map[string]any) Body {
-	new_body := new(Body)
-
-	new_body.mid = body["mid"].(string)
-
-	new_body.text = body["text"].(string)
-
-	val, ok := body["attachments"]
-	if ok {
-		for _, value := range val.([]any) {
-			new_body.attachments = append(new_body.attachments, ParseAttachment(value.(map[string]any)))
-		}
-	}
-
-	return *new_body
+type Recipient struct {
+	Chat_id int64
+	User_id int64
 }
-
+type Sender struct {
+	User_id    int64
+	First_name string
+	Last_name  string
+	Username   string
+}
 type Message struct {
-	body Body
+	Body      Body
+	Recipient Recipient
+	Sender    Sender
 }
 
-func ParseMessage(message map[string]any) Message {
-	new_msg := new(Message)
-	new_msg.body = ParseBody(message["body"].(map[string]any))
-
-	return *new_msg
+type Update struct {
+	Message Message
+}
+type Updates struct {
+	Updates []Update
 }
 
-func Handle(token string) {
+func GetUpdates(token string) Updates {
 	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", GETUPDATES, nil)
@@ -140,17 +112,19 @@ func Handle(token string) {
 	}
 	defer resp.Body.Close()
 
-	update := map[string]any{}
-	var reader Reader = ReaderJson{&update}
+	var out string
+	var reader Reader = ReaderString{&out}
+
 	reader.Read(resp)
 
-	for _, value := range update["updates"].([]any) {
-		msg := ParseMessage(value.(map[string]any)["message"].(map[string]any))
-		if len(msg.body.attachments) > 0 && msg.body.attachments[0]._type > 0 {
-			GetAudio(token, msg.body.attachments[0].url)
-		}
-		log.Printf("%s:%s\n", msg.body.mid, msg.body.text)
+	var updates Updates
+	err = json.Unmarshal([]byte(out), &updates)
+	if err != nil {
+		log.Printf("%s\n", err)
 	}
+
+	return updates
+
 }
 
 func GetAudio(token, url string) {
@@ -169,9 +143,69 @@ func GetAudio(token, url string) {
 
 	var reader Reader = ReaderFile{"file.ogg"}
 	reader.Read(resp)
+}
 
+const SENDMESSAGE = "https://platform-api.max.ru/messages?chat_id="
+
+type link struct {
+	Type string `json:"type"`
+	Mid  string `json:"mid"`
+}
+type sendMessage struct {
+	Chat_id int64  `json:"-"`
+	Text    string `json:"text,omitempty"`
+	Link    link   `json:"link"`
+}
+
+func SendMessage(token string, message sendMessage) {
+	client := &http.Client{}
+
+	data, err := json.Marshal(message)
+	if err != nil {
+		log.Printf("%#v", err)
+	}
+
+	log.Printf("%s\n", data)
+
+	req, err := http.NewRequest("POST", SENDMESSAGE+fmt.Sprint(message.Chat_id), bytes.NewReader(data))
+	if err != nil {
+		log.Printf("%#v", err)
+	}
+
+	req.Header.Add("Authorization", token)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("%#v", err)
+	}
+
+	defer resp.Body.Close()
+
+	var out string
+	var reader Reader = ReaderString{&out}
+	reader.Read(resp)
+
+	log.Printf("\n%s\n", out)
 }
 
 func main() {
-	Handle(os.Args[1])
+	token := os.Args[1]
+	for _, update := range GetUpdates(token).Updates {
+		message := update.Message
+
+		log.Printf("%#v\n", message)
+		for _, attachment := range message.Body.Attachments {
+			switch attachment.Type {
+			case "audio":
+				GetAudio(token, attachment.Payload.Url)
+
+				resp := sendMessage{Chat_id: message.Recipient.Chat_id, Text: "resp", Link: link{Type: "reply", Mid: message.Body.Mid}}
+				SendMessage(token, resp)
+
+			default:
+			}
+
+		}
+	}
+
 }
