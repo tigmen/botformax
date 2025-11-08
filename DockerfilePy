@@ -1,0 +1,10 @@
+FROM python:3.13
+
+WORKDIR /build
+
+COPY ./requirements /build/requirements
+COPY ./src /build
+
+RUN pip install --no-cache-dir --upgrade -r /build/requirements
+
+CMD ["fastapi", "run", "main.py", "--port", "80"]
