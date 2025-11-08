@@ -1,2 +1,2 @@
-all:
-	pip install -r req
+all:requirements
+	pip install -r requirements
