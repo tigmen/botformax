@@ -1,3 +1,4 @@
+pydantic
 fastapi[all]
 requests
 openai-whisper
