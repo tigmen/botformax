@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 )
@@ -122,12 +123,11 @@ func GetUpdates(token string) Updates {
 	if err != nil {
 		log.Printf("%s\n", err)
 	}
-
 	return updates
 
 }
 
-func GetAudio(token, url string) {
+func GetAudio(token, url string) []byte {
 	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -143,6 +143,13 @@ func GetAudio(token, url string) {
 
 	var reader Reader = ReaderFile{"file.ogg"}
 	reader.Read(resp)
+	out, err := os.ReadFile("file.ogg")
+
+	if err != nil {
+		log.Fatalf("Ошибка чтения файла: %v", err)
+	}
+
+	return out
 }
 
 const SENDMESSAGE = "https://platform-api.max.ru/messages?chat_id="
@@ -188,6 +195,55 @@ func SendMessage(token string, message sendMessage) {
 	log.Printf("\n%s\n", out)
 }
 
+const MODELAPIURL = "http://localhost:8080/decode/"
+
+type sendFile struct {
+	File_name  string `json:"file_name"`
+	File_bytes string `json:"file_bytes"`
+}
+
+func DecodeFile() string {
+	file, err := os.Open("file.ogg")
+	if err != nil {
+	}
+	defer file.Close()
+
+	form := new(bytes.Buffer)
+	writer := multipart.NewWriter(form)
+	part, err := writer.CreateFormFile("file", "file.ogg")
+
+	if err != nil {
+	}
+
+	_, err = io.Copy(part, file)
+	if err != nil {
+	}
+
+	writer.Close()
+
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", MODELAPIURL, form)
+	if err != nil {
+		log.Printf("%#v", err)
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("%#v", err)
+	}
+
+	defer resp.Body.Close()
+
+	var out string
+
+	var reader Reader = ReaderString{&out}
+	reader.Read(resp)
+
+	return out
+}
+
 func main() {
 	token := os.Args[1]
 	for _, update := range GetUpdates(token).Updates {
@@ -198,8 +254,9 @@ func main() {
 			switch attachment.Type {
 			case "audio":
 				GetAudio(token, attachment.Payload.Url)
+				out := DecodeFile()
 
-				resp := sendMessage{Chat_id: message.Recipient.Chat_id, Text: "resp", Link: link{Type: "reply", Mid: message.Body.Mid}}
+				resp := sendMessage{Chat_id: message.Recipient.Chat_id, Text: out, Link: link{Type: "reply", Mid: message.Body.Mid}}
 				SendMessage(token, resp)
 
 			default:
@@ -207,5 +264,4 @@ func main() {
 
 		}
 	}
-
 }

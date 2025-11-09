@@ -3,10 +3,10 @@ FROM python:3.13-slim
 WORKDIR /build
 
 COPY ./requirements /build/requirements
-COPY ./src /build
-COPY ./test /build/test
 
 RUN apt update && apt install ffmpeg -y
 RUN pip install --no-cache-dir --upgrade -r /build/requirements
+
+COPY ./src /build
 
 CMD ["fastapi", "run", "main.py", "--port", "80"]
