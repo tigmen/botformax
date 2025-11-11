@@ -197,11 +197,6 @@ func SendMessage(token string, message sendMessage) {
 
 const MODELAPIURL = "http://localhost:8080/decode/"
 
-type sendFile struct {
-	File_name  string `json:"file_name"`
-	File_bytes string `json:"file_bytes"`
-}
-
 func DecodeFile() string {
 	file, err := os.Open("file.ogg")
 	if err != nil {
@@ -244,8 +239,7 @@ func DecodeFile() string {
 	return out
 }
 
-func main() {
-	token := os.Args[1]
+func handle(token string) {
 	for _, update := range GetUpdates(token).Updates {
 		message := update.Message
 
@@ -253,15 +247,34 @@ func main() {
 		for _, attachment := range message.Body.Attachments {
 			switch attachment.Type {
 			case "audio":
-				GetAudio(token, attachment.Payload.Url)
-				out := DecodeFile()
+				go func() {
+					GetAudio(token, attachment.Payload.Url)
+					out := DecodeFile()
 
-				resp := sendMessage{Chat_id: message.Recipient.Chat_id, Text: out, Link: link{Type: "reply", Mid: message.Body.Mid}}
-				SendMessage(token, resp)
+					resp := sendMessage{Chat_id: message.Recipient.Chat_id, Text: out, Link: link{Type: "reply", Mid: message.Body.Mid}}
+					SendMessage(token, resp)
 
+				}()
 			default:
 			}
 
 		}
 	}
+}
+
+func main() {
+	token := os.Args[1]
+	done := make(chan bool, 1)
+
+	go func() {
+		var n int
+		fmt.Scanln(&n)
+		done <- true
+	}()
+
+	for len(done) == 0 {
+		handle(token)
+	}
+
+	<-done
 }
