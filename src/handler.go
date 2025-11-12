@@ -7,27 +7,35 @@ import (
 	"sync"
 )
 
-const N_STREAMS = 8
+const N_STREAMS = 4
 
 type stream struct {
 	Mutex sync.Mutex
 	Busy  bool
 }
 
-func handle(streams *[N_STREAMS]stream, token string, queue *[]Update, done chan bool, wg *sync.WaitGroup) {
+type update_queue struct {
+	queue []Update
+	Mutex sync.Mutex
+}
+
+func handle(streams *[N_STREAMS]stream, token string, queue *update_queue, done chan bool, wg *sync.WaitGroup) {
 	for len(done) == 0 {
 
-		if len(*queue) > 0 {
-			message := (*queue)[0].Message
-			*queue = (*queue)[1:]
+		if len(queue.queue) > 0 {
+			queue.Mutex.Lock()
+			log.Printf("enter file i : %v", queue)
+			message := queue.queue[0].Message
+			queue.queue = queue.queue[1:]
+			queue.Mutex.Unlock()
 
-			log.Printf("%#v\n", message)
 			for _, attachment := range message.Body.Attachments {
 
 				wg.Go(func() {
 					for i := range streams {
 						if !streams[i].Busy {
 							streams[i].Busy = true
+							log.Printf("enter file %d : %v", i, queue)
 							streams[i].Mutex.Lock()
 
 							filename := fmt.Sprintf("%s%d%s", "file/audio", i, ".ogg")
@@ -38,6 +46,7 @@ func handle(streams *[N_STREAMS]stream, token string, queue *[]Update, done chan
 							SendMessage(token, resp)
 
 							streams[i].Mutex.Unlock()
+							log.Printf("exit file %d with %v", i, resp)
 							streams[i].Busy = false
 							break
 						}
@@ -52,9 +61,6 @@ func handle(streams *[N_STREAMS]stream, token string, queue *[]Update, done chan
 func main() {
 	token := os.Args[1]
 	done := make(chan bool, 1)
-	var lines [N_STREAMS]stream
-	var marker int64 = 0
-	var update_queue []Update
 	var wg sync.WaitGroup
 
 	wg.Go(func() {
@@ -64,19 +70,28 @@ func main() {
 		wg.Done()
 	})
 
+	var update_queue update_queue
+	update_queue.queue = make([]Update, 0)
+	update_queue.Mutex = sync.Mutex{}
+
+	var lines [N_STREAMS]stream
+	var marker int64 = 0
+
 	wg.Add(1)
 	go handle(&lines, token, &update_queue, done, &wg)
 
 	for len(done) == 0 {
+		log.Printf("get updates with marker: %d", marker)
 		for _, update := range GetUpdates(token, &marker).Updates {
 			message := update.Message
 
-			log.Printf("%#v\n", message)
 			for _, attachment := range message.Body.Attachments {
 
 				switch attachment.Type {
 				case "audio":
-					update_queue = append(update_queue, update)
+					update_queue.Mutex.Lock()
+					update_queue.queue = append(update_queue.queue, update)
+					update_queue.Mutex.Unlock()
 
 				default:
 				}

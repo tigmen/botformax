@@ -51,7 +51,7 @@ type Updates struct {
 	Marker  int64
 }
 type getUpdates struct {
-	Marker int64
+	Marker int64 `json:"marker"`
 }
 
 type link struct {
@@ -71,8 +71,6 @@ func GetUpdates(token string, marker *int64) Updates {
 	if err != nil {
 		log.Printf("%#v", err)
 	}
-
-	log.Printf("%s\n", data)
 
 	req, err := http.NewRequest("GET", GETUPDATES, bytes.NewBuffer(data))
 	if err != nil {
@@ -97,7 +95,9 @@ func GetUpdates(token string, marker *int64) Updates {
 		log.Printf("%s\n", err)
 	}
 
-	*marker = updates.Marker
+	if updates.Marker > 0 {
+		*marker = updates.Marker
+	}
 
 	return updates
 }
@@ -135,8 +135,6 @@ func SendMessage(token string, message sendMessage) {
 		log.Printf("%#v", err)
 	}
 
-	log.Printf("%s\n", data)
-
 	req, err := http.NewRequest("POST", SENDMESSAGE+fmt.Sprint(message.Chat_id), bytes.NewReader(data))
 	if err != nil {
 		log.Printf("%#v", err)
@@ -154,6 +152,4 @@ func SendMessage(token string, message sendMessage) {
 	var out string
 	var reader Reader = ReaderString{&out}
 	reader.Read(resp)
-
-	log.Printf("\n%s\n", out)
 }

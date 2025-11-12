@@ -27,7 +27,8 @@ def decodeFile(file: bytes = File()):
 
         try:
             out = transcriber.audio_to_text(path)
-        except:
+        except Exception as e:
+            print(e)
             out = ""
 
         return out
