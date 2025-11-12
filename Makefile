@@ -4,8 +4,8 @@ all: build_handler requirements
 go.mod:
 	go mod init main
 
-go_resources = src/client.go src/readers.go src/maxapi.go src/aiapi.go
-out = build/index
+go_resources = src/handler.go src/readers.go src/maxapi.go src/aiapi.go
+out = build/index.exe
 build_handler: $(go_resources) go.mod
 	go mod tidy
 	go build -o $(out) $(go_resources)

@@ -48,6 +48,10 @@ type Update struct {
 }
 type Updates struct {
 	Updates []Update
+	Marker  int64
+}
+type getUpdates struct {
+	Marker int64
 }
 
 type link struct {
@@ -60,10 +64,17 @@ type sendMessage struct {
 	Link    link   `json:"link"`
 }
 
-func GetUpdates(token string) Updates {
+func GetUpdates(token string, marker *int64) Updates {
 	client := &http.Client{}
 
-	req, err := http.NewRequest("GET", GETUPDATES, nil)
+	data, err := json.Marshal(getUpdates{Marker: *marker})
+	if err != nil {
+		log.Printf("%#v", err)
+	}
+
+	log.Printf("%s\n", data)
+
+	req, err := http.NewRequest("GET", GETUPDATES, bytes.NewBuffer(data))
 	if err != nil {
 		log.Printf("%#v", err)
 	}
@@ -85,11 +96,13 @@ func GetUpdates(token string) Updates {
 	if err != nil {
 		log.Printf("%s\n", err)
 	}
-	return updates
 
+	*marker = updates.Marker
+
+	return updates
 }
 
-func GetAudio(token, url string) []byte {
+func GetAudio(token, url, filename string) []byte {
 	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -103,9 +116,9 @@ func GetAudio(token, url string) []byte {
 		log.Printf("%#v", err)
 	}
 
-	var reader Reader = ReaderFile{"file.ogg"}
+	var reader Reader = ReaderFile{filename}
 	reader.Read(resp)
-	out, err := os.ReadFile("file.ogg")
+	out, err := os.ReadFile(filename)
 
 	if err != nil {
 		log.Fatalf("Ошибка чтения файла: %v", err)

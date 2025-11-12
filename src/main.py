@@ -25,6 +25,10 @@ def decodeFile(file: bytes = File()):
         with open(path, "wb") as f:
             f.write(file)
 
-        out = transcriber.audio_to_text(path)
+        try:
+            out = transcriber.audio_to_text(path)
+        except:
+            out = ""
+
         return out
 

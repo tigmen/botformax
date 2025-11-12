@@ -2,3 +2,4 @@
 build
 keys
 go.*
+file/*

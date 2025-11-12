@@ -16,20 +16,23 @@ type sendFile struct {
 	File_bytes string `json:"file_bytes"`
 }
 
-func DecodeFile() string {
-	file, err := os.Open("file.ogg")
+func DecodeFile(filename string) string {
+	file, err := os.Open(filename)
 	if err != nil {
+		log.Printf("%#v", err)
 	}
 	defer file.Close()
 
 	form := new(bytes.Buffer)
 	writer := multipart.NewWriter(form)
-	part, err := writer.CreateFormFile("file", "file.ogg")
+	part, err := writer.CreateFormFile("file", filename)
 	if err != nil {
+		log.Printf("%#v", err)
 	}
 
 	_, err = io.Copy(part, file)
 	if err != nil {
+		log.Printf("%#v", err)
 	}
 
 	writer.Close()
@@ -42,17 +45,18 @@ func DecodeFile() string {
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
+	var out string = ""
+
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("%#v", err)
+	} else {
+
+		defer resp.Body.Close()
+
+		var reader Reader = ReaderString{&out}
+		reader.Read(resp)
+
 	}
-
-	defer resp.Body.Close()
-
-	var out string
-
-	var reader Reader = ReaderString{&out}
-	reader.Read(resp)
-
 	return out
 }
