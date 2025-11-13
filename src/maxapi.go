@@ -78,10 +78,10 @@ func GetUpdates(token string, marker *int64) Updates {
 	}
 	req.Header.Add("Authorization", token)
 	resp, err := client.Do(req)
-
 	if err != nil {
 		log.Printf("%#v", err)
 	}
+
 	defer resp.Body.Close()
 
 	var out string
