@@ -1,0 +1,21 @@
+FROM golang:alpine AS builder
+
+
+RUN apk update --no-cache && apk add --no-cache make
+
+WORKDIR /build
+
+COPY ./src /build/src
+COPY ./HandlerMakefile /build/Makefile
+
+RUN make OUT=./index
+
+FROM alpine
+
+ENV TOKEN="0"
+
+WORKDIR /build
+
+COPY --from=builder /build/index ./index
+
+CMD ./index $TOKEN

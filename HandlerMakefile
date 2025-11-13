@@ -1,0 +1,17 @@
+RESOURCES = src/handler.go src/readers.go src/maxapi.go src/aiapi.go
+OUT = build/index
+
+all: _build 
+
+go.mod:
+	go mod init main
+
+_build: $(RESOURCES) go.mod file build
+	go mod tidy
+	go build -o $(OUT) $(RESOURCES)
+
+file:
+	mkdir file
+
+build:
+	mkdir build

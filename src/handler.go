@@ -38,7 +38,7 @@ func handle(streams *[N_STREAMS]stream, token string, queue *update_queue, done 
 							log.Printf("enter file %d : %v", i, queue)
 							streams[i].Mutex.Lock()
 
-							filename := fmt.Sprintf("%s%d%s", "file/audio", i, ".ogg")
+							filename := fmt.Sprintf("%s%d%s", "audio", i, ".ogg")
 							GetAudio(token, attachment.Payload.Url, filename)
 							out := DecodeFile(filename)
 
@@ -63,13 +63,6 @@ func main() {
 	done := make(chan bool, 1)
 	var wg sync.WaitGroup
 
-	wg.Go(func() {
-		var n int
-		fmt.Scanln(&n)
-		done <- true
-		wg.Done()
-	})
-
 	var update_queue update_queue
 	update_queue.queue = make([]Update, 0)
 	update_queue.Mutex = sync.Mutex{}
@@ -80,7 +73,7 @@ func main() {
 	wg.Add(1)
 	go handle(&lines, token, &update_queue, done, &wg)
 
-	for len(done) == 0 {
+	for {
 		log.Printf("get updates with marker: %d", marker)
 		for _, update := range GetUpdates(token, &marker).Updates {
 			message := update.Message
@@ -98,7 +91,4 @@ func main() {
 			}
 		}
 	}
-
-	<-done
-	wg.Wait()
 }

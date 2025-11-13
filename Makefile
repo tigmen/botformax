@@ -1,12 +1,15 @@
-all: build_handler requirements
-	pip install -r requirements
+all: api handler
 
-go.mod:
-	go mod init main
+TOKEN = "NULL"
+handler:
+	docker build -t handler -f DockerfileHandler .
+# 	docker run -e TOKEN="$(TOKEN)" --net=host handler
+	
+api:
+	docker build -t api -f DockerfileApi .
+# 	docker run -p 8080:80 -d api 
 
-go_resources = src/handler.go src/readers.go src/maxapi.go src/aiapi.go
-out = build/index.exe
-build_handler: $(go_resources) go.mod
-	go mod tidy
-	go build -o $(out) $(go_resources)
+
+
+
 
