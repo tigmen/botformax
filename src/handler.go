@@ -87,6 +87,14 @@ func main() {
 					update_queue.Mutex.Unlock()
 
 				default:
+					if message.Recipient.User_id != 0 {
+						SendMessage(token, sendMessage{Chat_id: message.Recipient.Chat_id, Text: "Здравствуйте, запишите мне голосовое сообщение и я расшифрую его.", Link: link{Type: "reply", Mid: message.Body.Mid}})
+					}
+				}
+			}
+			if len(message.Body.Attachments) == 0 {
+				if message.Recipient.User_id != 0 {
+					SendMessage(token, sendMessage{Chat_id: message.Recipient.Chat_id, Text: "Здравствуйте, запишите мне голосовое сообщение и я расшифрую его.", Link: link{Type: "reply", Mid: message.Body.Mid}})
 				}
 			}
 		}
